@@ -26,7 +26,8 @@ class CartPoleEnv2(gym.Env):
         self.length = 0.5 # actually half the pole's length
         self.polemass_length = (self.masspole * self.length)
         self.force_mag = 20.0
-        self.damping = .980;
+        self.damping = .995;
+        self.current_reward = 0;
         self.tau = 0.02  # seconds between state updates
 
         # Angle at which to fail the episode
@@ -78,10 +79,12 @@ class CartPoleEnv2(gym.Env):
 
         if not done:
             reward = costheta*100+100 - abs(x)*10
+            self.current_reward=reward/200.0 #max reward = 200
+            
         elif self.steps_beyond_done is None:
             # Pole just fell!
             self.steps_beyond_done = 0
-            reward = 1.0
+            reward = -1000.0
         else:
             if self.steps_beyond_done == 0:
                 logger.warn("You are calling 'step()' even though this environment has already returned done = True. You should always call 'reset()' once you receive 'done = True' -- any further steps are undefined behavior.")
@@ -120,12 +123,12 @@ class CartPoleEnv2(gym.Env):
             cart.add_attr(self.carttrans)
             self.viewer.add_geom(cart)
             l,r,t,b = -polewidth/2,polewidth/2,polelen-polewidth/2,-polewidth/2
-            pole = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
-            pole.set_color(.8,.6,.4)
+            self.pole = rendering.FilledPolygon([(l,b), (l,t), (r,t), (r,b)])
+            
             self.poletrans = rendering.Transform(translation=(0, axleoffset))
-            pole.add_attr(self.poletrans)
-            pole.add_attr(self.carttrans)
-            self.viewer.add_geom(pole)
+            self.pole.add_attr(self.poletrans)
+            self.pole.add_attr(self.carttrans)
+            self.viewer.add_geom(self.pole)
             self.axle = rendering.make_circle(polewidth/2)
             self.axle.add_attr(self.poletrans)
             self.axle.add_attr(self.carttrans)
@@ -141,7 +144,7 @@ class CartPoleEnv2(gym.Env):
         cartx = x[0]*scale+screen_width/2.0 # MIDDLE OF CART
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
-
+        self.pole.set_color(1.0-self.current_reward,self.current_reward,0)
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
     def close(self):
