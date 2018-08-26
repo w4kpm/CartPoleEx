@@ -78,8 +78,16 @@ class CartPoleEnv2(gym.Env):
         done = bool(done)
 
         if not done:
-            reward = costheta*100+100 - abs(x)*10
-            self.current_reward=reward/200.0 #max reward = 200
+            reward = 0
+            if costheta > .9:
+                reward = 1000
+            if costheta > 0:
+                reward += costheta*100
+            if costheta < 0:
+                reward = (1.0+costheta) * 50 
+            reward += 24 - abs(x)*10
+            #print(reward)
+            self.current_reward=min(reward/100.0,1.0)
             
         elif self.steps_beyond_done is None:
             # Pole just fell!
@@ -144,7 +152,10 @@ class CartPoleEnv2(gym.Env):
         cartx = x[0]*scale+screen_width/2.0 # MIDDLE OF CART
         self.carttrans.set_translation(cartx, carty)
         self.poletrans.set_rotation(-x[2])
-        self.pole.set_color(1.0-self.current_reward,self.current_reward,0)
+        if self.current_reward > 1:
+            self.pole.set_color(0,0,1.0)
+        else:
+            self.pole.set_color(1.0-self.current_reward,self.current_reward,0)
         return self.viewer.render(return_rgb_array = mode=='rgb_array')
 
     def close(self):
